@@ -30,7 +30,7 @@ A scalable and interactive realtime chatting application built using HTML, CSS, 
 ## Screenshots
 
 ### Start the chat
-![StartTheChat](./images/1.StartTheChat.png.png)
+![StartTheChat](./images/1.StartTheChat.png)
 ### Demo
 ![ChatSnap](./images/2.ChatSnap.png)
 ### End the chat
