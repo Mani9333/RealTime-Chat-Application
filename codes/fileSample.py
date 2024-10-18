@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class FlatFileWriter:
     def __init__(self, file_path, invalid_records_path):
         self.file_path = file_path
@@ -14,18 +15,18 @@ class FlatFileWriter:
                 'profile_info': [(30, 40)]  # Single position for 'profile_info'
             },
             'r2': {
-                'id': [(0, 10)], 
-                'order_id': [(10, 20)], 
+                'id': [(0, 10)],
+                'order_id': [(10, 20)],
                 'order_details': [(20, 50)]
             },
             'r3': {
-                'id': [(0, 10)], 
-                'address': [(10, 40)], 
+                'id': [(0, 10)],
+                'address': [(10, 40)],
                 'city': [(40, 50)]
             },
             'r4': {
-                'id': [(0, 10)], 
-                'phone': [(10, 20)], 
+                'id': [(0, 10)],
+                'phone': [(10, 20)],
                 'email': [(20, 50)]
             },
         }
@@ -40,17 +41,25 @@ class FlatFileWriter:
         if self.invalid_records:
             self.invalid_records.close()
 
+    def prepare_id_sets(self, dataframes_dict):
+        """Preprocess dataframes to create a dictionary of sets for fast id lookup."""
+        id_sets = {df_type: set(df['id'].astype(str)) for df_type, df in dataframes_dict.items()}
+        return id_sets
+
     def write_flat_file(self, dataframes_dict):
         # Find the unique ids by taking all the unique 'id' values across all dataframes
-        all_ids = pd.concat([df['id'] for df in dataframes_dict.values()]).unique()
+        all_ids = pd.concat([df['id'].astype(str) for df in dataframes_dict.values()]).unique()
+
+        # Preprocess the dataframes into sets of ids for fast lookup
+        id_sets = self.prepare_id_sets(dataframes_dict)
 
         # For each id, check if it exists in all dataframes
         for person_id in all_ids:
             missing_from = []
             present_in = []
 
-            for df_type, df in dataframes_dict.items():
-                if person_id not in df['id'].values:
+            for df_type, id_set in id_sets.items():
+                if person_id not in id_set:
                     missing_from.append(df_type)
                 else:
                     present_in.append(df_type)
@@ -65,7 +74,7 @@ class FlatFileWriter:
                 for df_type, df in dataframes_dict.items():
                     layout = self.layouts[df_type]
                     # Filter the dataframe to get the rows for the current person_id
-                    df_filtered = df[df['id'] == person_id]
+                    df_filtered = df[df['id'].astype(str) == person_id]
                     for _, row in df_filtered.iterrows():
                         fixed_length_row = [' '] * 50  # Assume 50 is the max length of the line
                         for col, positions in layout.items():
@@ -87,14 +96,15 @@ class FlatFileWriter:
         # Close the files after writing is complete
         self.close_files()
 
+
 # Example usage from another class or file
 def main():
     # Example data for two people
-    r1_data = {'id': [1, 2, 3], 'name': ['Alice', 'Bob', 'Charlie'], 
+    r1_data = {'id': [1, 2, 3], 'name': ['Alice', 'Bob', 'Charlie'],
                'profile_info': ['InfoA', 'InfoB', 'InfoC']}
     r2_data = {'id': [1, 2], 'order_id': [100, 200], 'order_details': ['DetailsA', 'DetailsB']}
     r3_data = {'id': [1], 'address': ['123 St'], 'city': ['NY']}
-    r4_data = {'id': [2], 'phone': ['0987654321'], 'email': ['bob@test.com']}
+    r4_data = {'id': [1], 'phone': ['0987654321'], 'email': ['bob@test.com']}
 
     r1_df = pd.DataFrame(r1_data)
     r2_df = pd.DataFrame(r2_data)
@@ -111,6 +121,7 @@ def main():
     # Create an instance of FlatFileWriter and call start_process
     writer = FlatFileWriter('output_file', 'invalid_records_file')
     writer.start_process(dataframes_dict)
+
 
 if __name__ == "__main__":
     main()
